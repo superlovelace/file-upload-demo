@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+    <head>
+        <meta charset="UTF-8">
+        <title>文件上传</title>
+    </head>
+    <body>
+        <h2>文件上传示例项目</h2>
+
+        <input type="file" id="fileInput" multiple/>
+        <button onclick="uploadFiles()">开始上传</button>
+        <div id="progress"></div>
+        <br>
+        <b>注意：大文件默认并发上传加快上传速度，但是上传进度可能会出现异常（文件越小越容易出现此类问题），类似已提示上传成功，但是上传进度未到100%的现象，但文件已成功上传，可忽略。</b>
+        <hr>
+        <p>上传文件访问地址(多文件上传，这里的地址会被后面的地址覆盖掉)：<a id="fileLink" href="#" target="_blank">点击访问</a></p>
+
+        <script>
+            localStorage.clear();
+            let file = null;
+            const CHUNK_SIZE = 1 * 1024 * 1024; // 每片1MB
+
+            // 重试上传
+            async function uploadWithRetry(chunk, totalChunks,chunkIndex, name, size,sha256, retries = 3) {
+                let uploadedChunks = chunkIndex;
+                try {
+                    await uploadChunk(chunk, totalChunks,chunkIndex, name, size,sha256)
+                    .then(() => {
+                        uploadedChunks++;
+                        updateProgress(uploadedChunks, totalChunks);
+                    })
+                    .catch(err => {
+                        console.error(`分片 ${chunkIndex} 上传失败:`, err);
+                        return Promise.reject(err);
+                    });
+                } catch (error) {
+                    if (retries > 0) {
+                        console.log(`分片 ${chunkIndex} 上传失败，剩余重试次数 ${retries}`);
+                        await uploadWithRetry(chunk, totalChunks,chunkIndex, name, size,sha256, retries - 1);
+                    } else {
+                        throw new Error(`分片 ${chunkIndex} 上传失败: ${error}`);
+                    }
+                }
+            }
+
+            //
+            function uploadFiles() {
+                const fileInput = document.getElementById('fileInput');
+                const files = fileInput.files; // FileList 对象（类数组）
+                
+                if (files.length === 0) {
+                    alert('请先选择文件！');
+                    return;
+                }
+
+
+                // 遍历所有文件
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    // 文件大于50MB时，进行分片上传
+                    if (file.size > 50 * 1024 * 1024){
+                        console.info("文件大于50MB，进行分片上传");
+                        uploadFile(file); // 逐个上传
+                    }else {
+                        console.info("文件小于50MB，直接上传");
+                        uploadSingleFile(file);
+                    }
+
+                }
+            }
+
+            // 单文件上传
+            async function uploadSingleFile(file) {
+                let sha256 = await calculateFileSha256(file);
+                // 调用时必须用 await 或 then
+
+                const flag = await uploadStatus(sha256, 1);
+                console.log("最终结果:", flag);
+                if(flag === 0){
+                    alert("文件已上传！");
+                    return;
+                }
+                // 分片总数为0则使用单文件上传
+                await uploadChunk(file, 0,0, file.name, file.size,sha256)
+                    .then(() => {
+
+                    })
+                    .catch(err => {
+                        console.error(`上传失败:`, err);
+                        return Promise.reject(err);
+                    });
+                alert("上传成功！");
+            }
+
+            // 分片上传
+            async function uploadFile(file) {
+                const tasks = [];
+                let sha256 = await calculateFileSha256(file);
+                // 调用时必须用 await 或 then
+                const flag = await uploadStatus(sha256, 1);
+                console.log("最终结果:", flag);
+                if(flag === 0){
+                    alert("文件已上传！");
+                    return;
+                }
+                const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+                let index = localStorage.getItem("chunk");
+                if(index!=null){
+                    // 逐片上传
+                    for (let chunkIndex = index; chunkIndex < totalChunks; chunkIndex++) {
+                        const start = chunkIndex * CHUNK_SIZE;
+                        const end = Math.min(file.size, start + CHUNK_SIZE);
+                        const chunk = file.slice(start, end); // 切割文件片段
+                        tasks.push(() => uploadWithRetry(chunk, totalChunks, chunkIndex, file.name, file.size, sha256));
+                    }
+                    await runWithConcurrency(tasks, 3); // 严格限制并发数为 2
+                }else{
+                    // 逐片上传
+                    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                        const start = chunkIndex * CHUNK_SIZE;
+                        const end = Math.min(file.size, start + CHUNK_SIZE);
+                        const chunk = file.slice(start, end); // 切割文件片段
+                        tasks.push(() => uploadWithRetry(chunk, totalChunks, chunkIndex, file.name, file.size, sha256));
+                    }
+                    await runWithConcurrency(tasks, 3); // 严格限制并发数为 2
+                }
+
+                alert("上传成功！");
+            }
+
+            // 并发控制
+            async function runWithConcurrency(tasks, limit) {
+                const results = [];
+                const executing = new Set();
+
+                for (const task of tasks) {
+                    if (executing.size >= limit) {
+                        await Promise.race(executing); // 等待任意一个任务完成
+                    }
+
+                    const p = task().finally(() => executing.delete(p));
+                    executing.add(p);
+                    results.push(p);
+                }
+
+                return Promise.allSettled(results);
+            }
+
+            // 上传单个分片
+            function uploadChunk(file,totalChunks, chunk, fileName, fileSize,sha256) {
+                return new Promise((resolve, reject) => {
+                    const formData = new FormData();
+                    formData.append('sha256', sha256);
+                    formData.append('chunks', totalChunks);
+                    formData.append('chunk', chunk);
+                    formData.append('name', fileName);
+                    formData.append('file', file);
+                    formData.append('size', fileSize);
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', 'http://localhost:8080/api/upload', true);
+
+                    xhr.onload = () => {
+                        if (xhr.status === 200) {
+                            let data = xhr.response;
+                            if(data.substring(data.lastIndexOf("/")+1, data.length)!=="0"){
+                                document.getElementById("fileLink").href = data;
+                                console.log("文件地址："+data);
+                            }
+                            resolve();
+                        }
+                        else reject(xhr.responseText);
+                    };
+
+                    xhr.onerror = () => reject('网络错误');
+                    xhr.send(formData);
+                });
+            }
+
+            // 查询文件上传状态
+            async function uploadStatus(sha256, flag) {
+                try {
+                    await new Promise((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', 'http://localhost:8080/api/progress', true);
+                        
+                        xhr.onload = () => {
+                            if (xhr.status === 200) {
+                                chunk = xhr.response;
+                                localStorage.setItem("chunk",chunk);
+                                resolve();
+                            } else if (xhr.status === 404) {
+                                console.log("可以上传");
+                                resolve(); // 需要显式 resolve，否则 Promise 会一直挂起
+                            } else {
+                                flag = 0;
+                                console.log("不可上传");
+                                document.getElementById("fileLink").href = xhr.response;
+                                resolve(); // 即使失败也要 resolve，否则会阻塞
+                            }
+                        };
+                        
+                        xhr.onerror = () => {
+                            flag = 0;
+                            reject('网络错误');
+                        };
+                        
+                        const formData = new FormData();
+                        formData.append('sha256', sha256);
+                        xhr.send(formData);
+                    });
+                } catch (err) {
+                    console.error(err);
+                    flag = 0;
+                }
+                
+                console.log(flag); // 这里会输出修改后的值
+                return flag; // 返回最终的 flag
+            }
+
+            
+            // 计算文件SHA256
+            async function calculateFileSha256(file) {
+                const chunkSize = 2 * 1024 * 1024; // 分块计算MD5（每块2MB）
+                const chunks = Math.ceil(file.size / chunkSize);
+                const md5Buffer = new Uint8Array(16); // MD5结果为16字节
+
+                for (let i = 0; i < chunks; i++) {
+                    const start = i * chunkSize;
+                    const end = Math.min(file.size, start + chunkSize);
+                    const chunk = file.slice(start, end);
+                    const chunkBuffer = await chunk.arrayBuffer();
+                    
+                    // 增量计算MD5
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', chunkBuffer);
+                    const hashArray = new Uint8Array(hashBuffer);
+                    for (let j = 0; j < 16; j++) {
+                    md5Buffer[j] ^= hashArray[j]; // 简单异或合并（实际应更复杂）
+                    }
+                }
+
+                // 转成HEX字符串
+                return Array.from(md5Buffer)
+                    .map(b => b.toString(16).padStart(2, '0'))
+                    .join('');
+                }
+
+            // 更新进度条
+            function updateProgress(uploaded, total) {
+            const percent = Math.round((uploaded / total) * 100);
+            document.getElementById('progress').innerText = `进度: ${percent}%`;
+        }
+        </script>
+    </body>
+</html>

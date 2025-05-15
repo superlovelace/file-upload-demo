@@ -1,0 +1,52 @@
+server:
+  port: 8080
+  tomcat:
+    basedir: ./temp/
+  error:
+    whitelabel:
+      enabled: false
+    include-stacktrace: never
+    include-message: never
+  servlet:
+    encoding:
+      charset: UTF-8
+  shutdown: graceful
+  http2:
+    enabled: true
+
+spring:
+  thymeleaf:
+    enabled: true
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml # 主变更日志文件
+
+  datasource:
+    username: root
+    password: 123456
+    url: jdbc:mysql:///file_uploads_db?useUnicode=true&characterEncoding=utf-8&serverTimeZone=UTC&useSSL=false
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      enabled: true #  开启文件上传功能
+      max-file-size: 10GB # 10G
+      max-request-size: 100GB # 100G
+      location: ./temp/
+
+mybatis-plus:
+  type-aliases-package: com.demo.domain
+  mapper-locations: classpath:/mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    cache-enabled: true
+    auto-mapping-behavior: full
+
+
+upload:
+  path: ./upload/
+
+knife4j:
+  enable: true
+

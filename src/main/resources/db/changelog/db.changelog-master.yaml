@@ -1,0 +1,5 @@
+# db.changelog-master.yaml
+databaseChangeLog:
+  - includeAll:
+      path: classpath:/db/migration/ # SQL 脚本存放目录
+      relativeToChangelogFile: false

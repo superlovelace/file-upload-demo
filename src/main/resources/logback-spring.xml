@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- logback日志配置文件 -->
+
+    <!-- 定义日志输出到控制台 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%boldCyan([%d{yyyy-MM-dd HH:mm:ss.SSS}]) %boldBlue([%-5level]) %boldYellow([%thread]) %boldMagenta([%logger{36}]) - %msg%n</pattern>
+            <!-- 上面的 pattern 使用了 Logback 提供的颜色和样式定义 -->
+        </encoder>
+    </appender>
+
+    <!-- 定义日志输出到文件 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!-- 日志文件路径 -->
+        <file>logs/log.txt</file>
+        <!-- 日志滚动策略 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 日志文件名格式 -->
+            <fileNamePattern>logs/log-%d{yyyy-MM-dd}-%i.txt</fileNamePattern>
+            <!-- 日志文件最大大小 -->
+            <maxFileSize>10MB</maxFileSize>
+            <!-- 日志最多保存30天 -->
+            <maxHistory>30</maxHistory>
+            <!-- 可选：设置所有日志文件的总大小上限 -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+
+        <!-- 日志编码器 -->
+        <encoder>
+            <!-- 日志内容格式 -->
+            <pattern>[%d{yyyy-MM-dd HH:mm:ss}] [%thread] [%-5level] [%logger{36}] - %msg%n</pattern>
+            <!-- 如果需要文件输出也使用颜色，可以在这里定义 -->
+        </encoder>
+    </appender>
+
+
+    <!-- 定义Root Logger，设置日志级别和Appender -->
+    <root level="info">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>

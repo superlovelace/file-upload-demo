@@ -1,0 +1,43 @@
+# 单机配置
+singleServerConfig:
+  address: redis://127.0.0.1:6379
+  password: null
+  database: 0
+  idleConnectionTimeout: 10000
+  connectTimeout: 10000
+  timeout: 3000
+
+# 主从配置
+#masterSlaveServersConfig:
+#  masterAddress: "redis://127.0.0.1:6379"
+#  slaveAddresses:
+#    - "redis://127.0.0.1:6380"
+#    - "redis://127.0.0.1:6381"
+#  database: 0
+#  password: "your_password"
+#  masterConnectionPoolSize: 64
+#  slaveConnectionPoolSize: 64
+#  idleConnectionTimeout: 10000
+#  connectTimeout: 10000
+#  timeout: 3000
+#  retryAttempts: 3
+#  retryInterval: 1500
+
+# 集群配置
+#clusterServersConfig:
+#  nodeAddresses:
+#    - "redis://192.168.0.100:7001"
+#    - "redis://192.168.0.100:7002"
+#    - "redis://192.168.0.100:7003"
+#    - "redis://192.168.0.100:7004"
+#    - "redis://192.168.0.100:7005"
+#    - "redis://192.168.0.100:7006"
+#
+##  password: "your_password"
+#  readMode: "SLAVE"
+#  # 云服务通常需要更长的超时时间
+#  idleConnectionTimeout: 30000
+#  connectTimeout: 30000
+#  timeout: 5000
+#  retryAttempts: 5
+#  retryInterval: 2000

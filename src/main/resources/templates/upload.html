@@ -3,20 +3,28 @@
     <head>
         <meta charset="UTF-8">
         <title>文件上传</title>
+<!--        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'">-->
     </head>
     <body>
         <h2>文件上传示例项目</h2>
 
-        <input type="file" id="fileInput" multiple/>
-        <button onclick="uploadFiles()">开始上传</button>
+        <input type="file" id="fileInput" multiple accept="audio/*,video/*,image/*"/>
+        <button id="uploadBtn" onclick="uploadFiles()">开始上传</button>
         <div id="progress"></div>
         <br>
         <b>注意：大文件默认并发上传加快上传速度，但是上传进度可能会出现异常（文件越小越容易出现此类问题），类似已提示上传成功，但是上传进度未到100%的现象，但文件已成功上传，可忽略。</b>
+        <br>
+        <b>提示：超过50MB的文件，才自动使用分片上传，可在控制台的网络中查看并发进度（并发限制3个）。</b>
+        <br>
+        <b>控制台中的错误代码：404是上传了一部分，400为已上传完成触发妙传，会有相应提示。可以忽略。</b>
+        <br>
+        <b>若网络原因无法上传，最后依然会提示上传完成，请忽略此提示。</b>
         <hr>
         <p>上传文件访问地址(多文件上传，这里的地址会被后面的地址覆盖掉)：<a id="fileLink" href="#" target="_blank">点击访问</a></p>
 
         <script>
             localStorage.clear();
+            const btn = document.getElementById('uploadBtn');
             let file = null;
             const CHUNK_SIZE = 1 * 1024 * 1024; // 每片1MB
 
@@ -43,16 +51,19 @@
                 }
             }
 
+
             //
             function uploadFiles() {
                 const fileInput = document.getElementById('fileInput');
                 const files = fileInput.files; // FileList 对象（类数组）
-                
+
                 if (files.length === 0) {
                     alert('请先选择文件！');
                     return;
                 }
-
+                // 禁用按钮
+                btn.disabled = true;
+                btn.textContent = '正在上传...';
 
                 // 遍历所有文件
                 for (let i = 0; i < files.length; i++) {
@@ -77,6 +88,8 @@
                 const flag = await uploadStatus(sha256, 1);
                 console.log("最终结果:", flag);
                 if(flag === 0){
+                    btn.disabled = false;
+                    btn.textContent = '开始上传';
                     alert("文件已上传！");
                     return;
                 }
@@ -86,9 +99,13 @@
 
                     })
                     .catch(err => {
+                        btn.disabled = false;
+                        btn.textContent = '开始上传';
                         console.error(`上传失败:`, err);
                         return Promise.reject(err);
                     });
+                btn.disabled = false;
+                btn.textContent = '开始上传';
                 alert("上传成功！");
             }
 
@@ -100,6 +117,8 @@
                 const flag = await uploadStatus(sha256, 1);
                 console.log("最终结果:", flag);
                 if(flag === 0){
+                    btn.disabled = false;
+                    btn.textContent = '开始上传';
                     alert("文件已上传！");
                     return;
                 }
@@ -124,7 +143,8 @@
                     }
                     await runWithConcurrency(tasks, 3); // 严格限制并发数为 2
                 }
-
+                btn.disabled = false;
+                btn.textContent = '开始上传';
                 alert("上传成功！");
             }
 
@@ -202,7 +222,10 @@
                         
                         xhr.onerror = () => {
                             flag = 0;
+                            btn.disabled = false;
+                            btn.textContent = '开始上传';
                             reject('网络错误');
+                            alert("网络错误！");
                         };
                         
                         const formData = new FormData();
@@ -212,6 +235,8 @@
                 } catch (err) {
                     console.error(err);
                     flag = 0;
+                    btn.disabled = false;
+                    btn.textContent = '开始上传';
                 }
                 
                 console.log(flag); // 这里会输出修改后的值

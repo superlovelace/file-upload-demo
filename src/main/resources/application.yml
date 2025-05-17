@@ -1,6 +1,7 @@
 server:
   port: 8080
   tomcat:
+    # 临时文件目录
     basedir: ./temp/
   error:
     whitelabel:
@@ -27,6 +28,23 @@ spring:
     password: 123456
     url: jdbc:mysql:///file_uploads_db?useUnicode=true&characterEncoding=utf-8&serverTimeZone=UTC&useSSL=false
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  redis:
+    redisson:
+      file: classpath:redisson.yaml
+    host: localhost
+    port: 6379
+    timeout: 10000
+    database: 0
+    lettuce:
+      pool:
+        max-idle: 8
+        max-active: 8
+        max-wait: 100ms
+        min-idle: 0
+        enabled: true
+
+
   servlet:
     multipart:
       enabled: true #  开启文件上传功能

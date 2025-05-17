@@ -90,4 +90,8 @@ public class UploadUtils {
         }
         return CHUNK_MAP.get(key).getName();
     }
+
+    public static Map<String, Value> getChunkMapInfo() {
+        return CHUNK_MAP;
+    }
 }

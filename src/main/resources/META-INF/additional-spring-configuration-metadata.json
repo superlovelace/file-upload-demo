@@ -1,0 +1,14 @@
+{
+  "properties": [
+    {
+      "name": "spring.redis.redisson.file",
+      "type": "java.lang.String",
+      "description": "Redisson config file location"
+    },
+    {
+      "name": "spring.redis.redisson.config",
+      "type": "java.lang.String",
+      "description": "Inline Redisson config in YAML format"
+    }
+  ]
+}

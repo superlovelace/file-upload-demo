@@ -54,4 +54,4 @@ spring:
 
 界面示例：
 
-![文件上传示例图片](.\src\main\resources\static\文件上传示例图片.png)
+![文件上传示例图片](https://github.com/superlovelace/file-upload-demo/blob/master/src/main/resources/static/%E6%96%87%E4%BB%B6%E4%B8%8A%E4%BC%A0%E7%A4%BA%E4%BE%8B%E5%9B%BE%E7%89%87.png)

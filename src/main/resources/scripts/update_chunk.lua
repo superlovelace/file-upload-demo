@@ -8,7 +8,7 @@ local index = ARGV[1]  -- 转为Lua下标
 local expireSeconds = tonumber(ARGV[2]) or 0
 local chunkIndex = tonumber(index)
 --
----- 参数校验
+-- 参数校验
 if not chunkIndex then
     return redis.error_reply("CHUNK_INDEX_MUST_BE_A_NUMBER")
 end

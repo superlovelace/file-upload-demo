@@ -133,6 +133,7 @@ public class IndexController2 {
     public ResponseEntity<Resource> onlineFile(
             @PathVariable String fileId,
             @RequestParam(required = false) String displayName,
+            @RequestHeader(value = "Range", required = false) String rangeHeader,
             HttpServletRequest request) throws IOException {
 
         // 1. 从数据库查询文件元信息
@@ -140,8 +141,11 @@ public class IndexController2 {
         if (meta == null) {
             return ResponseEntity.notFound().build();
         }else {
-            meta.setDownloadCount(meta.getDownloadCount()+1);
-            fileUploadsMapper.updateById(meta);
+            // 只统计首次点击下载， 不统计后续通过继续/恢复下载的断点续传情况
+            if (rangeHeader == null) {
+                meta.setDownloadCount(meta.getDownloadCount()+1);
+                fileUploadsMapper.updateById(meta);
+            }
         }
         // 服务器存储名（如 abc123）
         String realFileName = meta.getStoragePath();

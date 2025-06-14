@@ -21,8 +21,7 @@
         <b>若网络原因无法上传，最后依然会提示上传完成，请忽略此提示。</b>
         <hr>
         <p>上传文件访问地址(多文件上传，这里的地址会被后面的地址覆盖掉)：<a id="fileLink" href="#" target="_blank">点击访问</a></p>
-        <script src="/sha.js"></script>
-        <script src="/md5.js"></script>
+
         <script>
             localStorage.clear();
             const btn = document.getElementById('uploadBtn');
@@ -181,7 +180,6 @@
                     const xhr = new XMLHttpRequest();
                     xhr.open('POST', 'http://localhost:8080/api/upload', true);
 
-
                     xhr.onload = () => {
                         if (xhr.status === 200) {
                             let data = xhr.response;
@@ -245,47 +243,33 @@
                 return flag; // 返回最终的 flag
             }
 
-
+            
             // 计算文件SHA256
-            // async function calculateFileSha256(file) {
-            //     const chunkSize = 1 * 1024 * 1024; // 分块计算MD5（每块2MB）
-            //     const chunks = Math.ceil(file.size / chunkSize);
-            //     const md5Buffer = new Uint8Array(32); // MD5结果为16字节
-            //
-            //     for (let i = 0; i < chunks; i++) {
-            //         const start = i * chunkSize;
-            //         const end = Math.min(file.size, start + chunkSize);
-            //         const chunk = file.slice(start, end);
-            //         const chunkBuffer = await chunk.arrayBuffer();
-            //
-            //         // 增量计算MD5
-            //
-            //         const hashBuffer = await crypto.subtle.digest('SHA-256', chunkBuffer);
-            //         const hashArray = new Uint8Array(hashBuffer);
-            //         for (let j = 0; j < 32; j++) {
-            //             md5Buffer[j] ^= hashArray[j]; // 简单异或合并（实际应更复杂）
-            //         }
-            //     }
-            //
-            //     // 转成HEX字符串
-            //     return Array.from(md5Buffer)
-            //         .map(b => b.toString(16).padStart(2, '0'))
-            //         .join('');
-            // }
             async function calculateFileSha256(file) {
-                const shaObj = new jsSHA("SHA-256", "ARRAYBUFFER"); // 初始化
-                const chunkSize = 1 * 1024 * 1024; // 1MB 分块
-                let offset = 0;
+                const chunkSize = 1 * 1024 * 1024; // 分块计算MD5（每块2MB）
+                const chunks = Math.ceil(file.size / chunkSize);
+                const md5Buffer = new Uint8Array(32); // MD5结果为16字节
 
-                while (offset < file.size) {
-                    const chunk = file.slice(offset, offset + chunkSize);
+                for (let i = 0; i < chunks; i++) {
+                    const start = i * chunkSize;
+                    const end = Math.min(file.size, start + chunkSize);
+                    const chunk = file.slice(start, end);
                     const chunkBuffer = await chunk.arrayBuffer();
-                    shaObj.update(new Uint8Array(chunkBuffer)); // 追加数据
-                    offset += chunkSize;
+
+                    // 增量计算MD5
+
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', chunkBuffer);
+                    const hashArray = new Uint8Array(hashBuffer);
+                    for (let j = 0; j < 32; j++) {
+                        md5Buffer[j] ^= hashArray[j]; // 简单异或合并（实际应更复杂）
+                    }
                 }
 
-                return shaObj.getHash("HEX"); // 最终计算
-            }
+                // 转成HEX字符串
+                return Array.from(md5Buffer)
+                    .map(b => b.toString(32).padStart(2, '0'))
+                    .join('');
+                }
 
             // 更新进度条
             function updateProgress(uploaded, total) {
